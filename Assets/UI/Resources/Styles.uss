@@ -1,0 +1,148 @@
+* {
+    color: white;
+}
+
+.unity-scroller__low-button,
+.unity-scroller__high-button {
+    display: none;
+}
+
+.unity-scroller {
+    width: 8px;
+}
+
+.unity-slider {
+    margin: 0px;
+    width: 100%;
+    min-width: 100%;
+}
+
+.unity-base-slider__tracker {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.unity-base-slider__dragger {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    width: 100%;
+    min-width: 100%;
+    padding: 0px;
+    margin: 0px;
+    border-width: 0px;
+    left: 0px;
+}
+
+.unity-base-slider__tracker {
+    border-width: 0px;
+}
+
+.servers .list {
+    margin: 10px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    flex-direction: row;
+}
+
+.servers .global-status {
+    min-height: 30px;
+    height: 30px;
+    padding: 4px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    align-items: center;
+}
+.servers .global-status .status {
+    padding: 0px;
+    margin: 0px;
+    height: 100%;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+.servers .item {
+    width: 500px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.4);
+    margin: 10px;
+    padding: 0px;
+}
+
+.servers .item .label {
+    text-overflow: ellipsis;
+}
+
+.servers .item .caption {
+    border-radius: 3px;
+    white-space: normal;
+    margin: 0px;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding-left: 5px;
+}
+
+.servers .item .container {
+    margin: 5px;
+    padding: 5px;
+}
+
+Status {
+    flex-direction: row;
+}
+
+Status .status {
+}
+Status .ms {
+    padding-right: 20px;
+}
+
+.checking {
+    color: gray;
+}
+
+.servers .global-status.success {
+    background-color: rgba(0, 255, 0, 0.2);
+}
+.servers .global-status.failed {
+    background-color: rgba(255, 0, 0, 0.2);
+}
+.servers .global-status.warning {
+    background-color: rgba(255, 255, 0, 0.2);
+}
+
+.servers .item.success {
+    border-color: rgba(0, 255, 0, 0.2);
+}
+
+.servers .item.failed {
+    border-color: rgba(255, 0, 0, 0.2);
+}
+
+.servers .item.warning {
+    border-color: rgba(255, 255, 0, 0.2);
+}
+
+.servers .item.success .caption {
+    background-color: rgba(0, 255, 0, 0.2);
+}
+
+.servers .item.failed .caption {
+    background-color: rgba(255, 0, 0, 0.2);
+}
+
+.servers .item.warning .caption {
+    background-color: rgba(255, 255, 0, 0.2);
+}
+
+.servers .item .failed {
+    color: red;
+}
+
+.servers .item .success {
+    color: green;
+}
+
+.servers .item .warning {
+    color: yellow;
+}
