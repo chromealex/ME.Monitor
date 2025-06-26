@@ -1,10 +1,16 @@
 * {
     color: white;
+    transition-property: background-color;
+    transition-duration: 0.5;
 }
 
 .unity-scroller__low-button,
 .unity-scroller__high-button {
     display: none;
+}
+
+.unity-foldout__content {
+    margin-left: 10px;
 }
 
 .unity-scroller {
@@ -15,6 +21,20 @@
     margin: 0px;
     width: 100%;
     min-width: 100%;
+}
+
+Foldout {
+    width: 100%;
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0.5);
+    margin-top: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+Foldout Toggle {
+    margin: 0px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
 }
 
 .unity-base-slider__tracker {
@@ -133,6 +153,18 @@ Status .ms {
 
 .servers .item.warning .caption {
     background-color: rgba(255, 255, 0, 0.2);
+}
+
+.flag-success Toggle {
+    background-color: rgba(0, 255, 0, 0.2);
+}
+
+.flag-warning Toggle {
+    background-color: rgba(255, 255, 0, 0.2);
+}
+
+.flag-failed Toggle {
+    background-color: rgba(255, 0, 0, 0.2);
 }
 
 .servers .item .failed {
