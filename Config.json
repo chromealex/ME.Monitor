@@ -1,0 +1,84 @@
+{
+  "comment_protocols": "Protocols: 0 - ping, 1 - TCP, 2 - GET, 3 - POST, 4 - PUT, 5 - DELETE",
+  "comment_groups": "In each group or server you can use overrides for refreshRate* and timeout*",
+  "chartLength": 30,
+  "refreshRate": 3,
+  "refreshRatePing": 0.3,
+  "refreshRateTcp": 3,
+  "refreshRateRest": 10,
+  "timeout": 10,
+  "timeoutPing": 3,
+  "timeoutTcp": 30,
+  "timeoutRest": 30,
+  "warningPing": 300,
+  "uiScale": 1,
+  "geoMode": true,
+  "groups": [
+    {
+      "caption": "Google",
+      "servers": [
+        {
+          "protocolPrefix": "https",
+          "host": "google.com",
+          "port": 0,
+          "description": "Google.com",
+          "protocols": [
+            0, 2
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "www.notion.com",
+          "port": 0,
+          "description": "Notion.com",
+          "protocols": [
+            0, 2
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "github.com",
+          "port": 0,
+          "description": "Github.com",
+          "protocols": [
+            0, 2
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "jetbrains.com",
+          "port": 0,
+          "description": "jetbrains.com",
+          "protocols": [
+            0, 2
+          ]
+        }
+      ],
+      "groups": [
+        {
+          "caption": "Meta",
+          "servers": [
+            {
+              "protocolPrefix": "https",
+              "host": "facebook.com",
+              "port": 0,
+              "description": "Facebook.com",
+              "protocols": [
+                0, 2
+              ]
+            },
+            {
+              "protocolPrefix": "https",
+              "host": "instagram.com",
+              "port": 0,
+              "description": "Instagram.com",
+              "protocols": [
+                0, 2
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
