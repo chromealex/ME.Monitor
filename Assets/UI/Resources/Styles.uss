@@ -4,6 +4,29 @@
     transition-duration: 0.5;
 }
 
+.geo-root {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
+}
+
+.server-geo-info {
+    display: none;
+    background-color: rgba(0, 0, 0, 0.7);
+    flex-grow: 0;
+}
+
+.geo-group {
+    position: absolute;
+    flex-grow: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 6px;
+    border-width: 8px;
+    border-color: rgba(0, 0, 0, 1);
+}
+
 Chart {
     width: 50px;
     height: 24px;

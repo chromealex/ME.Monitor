@@ -19,6 +19,12 @@ public class BaseGroup {
     public float refreshRatePing;
     public float refreshRateTcp;
     public float refreshRateRest;
+    
+    public float timeout;
+    public float timeoutPing;
+    public float timeoutTcp;
+    public float timeoutRest;
+    
     public int warningPing;
     public int chartLength;
 
@@ -30,6 +36,12 @@ public struct BaseGroupConfig {
     public float refreshRatePing;
     public float refreshRateTcp;
     public float refreshRateRest;
+    
+    public float timeout;
+    public float timeoutPing;
+    public float timeoutTcp;
+    public float timeoutRest;
+
     public int warningPing;
     public int chartLength;
 
@@ -38,6 +50,12 @@ public struct BaseGroupConfig {
         this.refreshRatePing = data.refreshRatePing;
         this.refreshRateTcp = data.refreshRateTcp;
         this.refreshRateRest = data.refreshRateRest;
+        
+        this.timeout = data.timeout;
+        this.timeoutPing = data.timeoutPing;
+        this.timeoutTcp = data.timeoutTcp;
+        this.timeoutRest = data.timeoutRest;
+        
         this.warningPing = data.warningPing;
         this.chartLength = data.chartLength;
     }
@@ -47,6 +65,12 @@ public struct BaseGroupConfig {
         this.refreshRatePing = GetRefreshRate(config.refreshRatePing, data.refreshRatePing);
         this.refreshRateTcp = GetRefreshRate(config.refreshRateTcp, data.refreshRateTcp);
         this.refreshRateRest = GetRefreshRate(config.refreshRateRest, data.refreshRateRest);
+        
+        this.timeout = GetRefreshRate(config.timeout, data.timeout);
+        this.timeoutPing = GetRefreshRate(config.timeoutPing, data.timeoutPing);
+        this.timeoutTcp = GetRefreshRate(config.timeoutTcp, data.timeoutTcp);
+        this.timeoutRest = GetRefreshRate(config.timeoutRest, data.timeoutRest);
+        
         this.warningPing = GetWarningPing(config.warningPing, data.warningPing);
         this.chartLength = GetWarningPing(config.chartLength, data.chartLength);
     }
@@ -70,6 +94,17 @@ public struct BaseGroupConfig {
             if (this.refreshRateRest > 0f) return this.refreshRateRest;
         }
         return this.refreshRate;
+    }
+
+    public float GetTimeout(Protocol protocol) {
+        if (protocol == Protocol.Ping) {
+            if (this.timeoutPing > 0f) return this.timeoutPing;
+        } else if (protocol == Protocol.Tcp) {
+            if (this.timeoutTcp > 0f) return this.timeoutTcp;
+        } else if (protocol >= Protocol.GET) {
+            if (this.timeoutRest > 0f) return this.timeoutRest;
+        }
+        return this.timeout;
     }
 
 }
@@ -101,6 +136,7 @@ public class Config : BaseGroup {
     public Group[] groups;
     public ServerConfig[] servers;
     public float uiScale;
+    public bool geoMode;
 
     public bool IsValid => this.servers != null || this.groups != null;
 
@@ -179,24 +215,41 @@ public class Chart : VisualElement {
 
 public class Status : VisualElement {
 
+    public enum State {
+
+        None = 0,
+        Failed,
+        Warning,
+        Success,
+
+    }
+
+    private MainScreen mainScreen;
     private ServerConfig config;
-    private VisualElement root;
+    public VisualElement root;
     private Label[] labels;
     private Label[] msLabels;
+    private float[] timeouts;
     private object[] pings;
     private BaseGroupConfig dataConfig;
     private float[] timer;
     private Chart[] chart;
-    
-    public Status(ServerConfig config, VisualElement parentGroup, VisualElement root, BaseGroupConfig dataConfig) {
+    private State state;
+    private int chartIndex = 0;
+    public readonly GeoMap.ServerInfo tag;
+
+    public Status(MainScreen mainScreen, ServerConfig config, VisualElement parentGroup, VisualElement root, BaseGroupConfig dataConfig) {
+        this.mainScreen = mainScreen;
         this.root = root;
         this.timer = new float[config.protocols.Length];
+        this.timeouts = new float[config.protocols.Length];
         this.dataConfig = dataConfig;
         this.config = config;
         this.labels = new Label[config.protocols.Length];
         this.msLabels = new Label[config.protocols.Length];
         this.pings = new object[config.protocols.Length];
         this.chart = new Chart[config.protocols.Length];
+        this.state = State.None;
         for (var i = 0; i < this.labels.Length; ++i) {
             var label = this.labels[i] = new Label();
             var ms = this.msLabels[i] = new Label();
@@ -212,6 +265,17 @@ public class Status : VisualElement {
                 this.chart[i].DataPoints = new Chart.DataPoint[dataConfig.chartLength];
             }
         }
+
+        try {
+            var host = System.Net.Dns.GetHostEntry(this.config.host);
+            this.tag = this.mainScreen.geoMap.AddServer(host, this);
+        } catch (System.Exception ex) {
+            Debug.LogException(ex);
+        }
+    }
+
+    public State GetState() {
+        return this.state;
     }
 
     public void Start() {
@@ -222,26 +286,29 @@ public class Status : VisualElement {
 
     public void Start(int i) {
         var protocol = this.config.protocols[i];
+        this.timeouts[i] = Time.realtimeSinceStartup;
         if (protocol == Protocol.Ping) {
             try {
                 var host = System.Net.Dns.GetHostEntry(this.config.host);
                 this.pings[i] = new UnityEngine.Ping(host.AddressList[0].ToString());
             } catch (System.Exception ex) {
+                this.pings[i] = null;
                 Debug.LogException(ex);
                 this.Fail(i);
             }
         } else if (protocol == Protocol.Tcp) {
-            var host = System.Net.Dns.GetHostEntry(this.config.host);
-            var tcpClient = new System.Net.Sockets.TcpClient(host.AddressList[0].AddressFamily);
-            tcpClient.SendTimeout = (int)(this.dataConfig.GetRate(Protocol.Tcp) * 1000);
-            tcpClient.ReceiveTimeout = (int)(this.dataConfig.GetRate(Protocol.Tcp) * 1000);
             try {
+                var host = System.Net.Dns.GetHostEntry(this.config.host);
+                var tcpClient = new System.Net.Sockets.TcpClient(host.AddressList[0].AddressFamily);
+                tcpClient.SendTimeout = (int)(this.dataConfig.GetRate(Protocol.Tcp) * 1000);
+                tcpClient.ReceiveTimeout = (int)(this.dataConfig.GetRate(Protocol.Tcp) * 1000);
                 tcpClient.BeginConnect(host.AddressList, this.config.port, null, null);
+                this.pings[i] = tcpClient;
             } catch (System.Exception ex) {
+                this.pings[i] = null;
                 Debug.LogException(ex);
                 this.Fail(i);
             }
-            this.pings[i] = tcpClient;
         } else if (protocol >= Protocol.GET) {
             var prefix = $"{this.config.protocolPrefix}://";
             try {
@@ -249,6 +316,7 @@ public class Status : VisualElement {
                 obj.SendWebRequest();
                 this.pings[i] = obj;
             } catch (System.Exception ex) {
+                this.pings[i] = null;
                 Debug.LogException(ex);
                 this.Fail(i);
             }
@@ -278,15 +346,21 @@ public class Status : VisualElement {
         }
     }
 
-    private bool IsDone(int i) {
+    public bool IsDone(int i, out bool timeout) {
         var protocol = this.config.protocols[i];
+        timeout = false;
+        if ((Time.realtimeSinceStartup - this.timeouts[i]) >= this.dataConfig.GetTimeout(protocol)) {
+            timeout = true;
+            return true;
+        }
+        if (this.pings[i] == null) return true;
         if (protocol == Protocol.Ping) {
             if (this.pings[i] is Ping req) {
                 return req.isDone == true;
             }
         } else if (protocol == Protocol.Tcp) {
             if (this.pings[i] is System.Net.Sockets.TcpClient req) {
-                return req.Connected == true;
+                return req.Client != null && req.Connected == true;
             }
         } else if (protocol >= Protocol.GET) {
             if (this.pings[i] is UnityEngine.Networking.UnityWebRequest req) {
@@ -296,16 +370,18 @@ public class Status : VisualElement {
         return false;
     }
 
-    private bool IsSuccess(int i) {
+    public bool IsSuccess(int i) {
         var protocol = this.config.protocols[i];
+        if ((Time.realtimeSinceStartup - this.timeouts[i]) >= this.dataConfig.GetTimeout(protocol)) return false;
+        if (this.pings[i] == null) return false;
         if (protocol == Protocol.Ping) {
             if (this.pings[i] is Ping req) {
-                return req.isDone == true && req.time >= 0 && req.time <= this.dataConfig.warningPing;
+                return req.isDone == true && req.time > 0 && req.time <= this.dataConfig.warningPing;
             }
         } else if (protocol == Protocol.Tcp) {
             if (this.pings[i] is System.Net.Sockets.TcpClient req) {
-                if (req.Connected == false) return true;
-                return req.Connected == true && req.Client != null && req.GetStream().CanRead == true;
+                if (req.Client == null || req.Connected == false) return true;
+                return req.Client != null && req.Connected == true && req.GetStream().CanRead == true;
             }
         } else if (protocol >= Protocol.GET) {
             if (this.pings[i] is UnityEngine.Networking.UnityWebRequest req) {
@@ -316,15 +392,16 @@ public class Status : VisualElement {
         return false;
     }
 
-    private bool IsWarning(int i) {
+    public bool IsWarning(int i) {
         var protocol = this.config.protocols[i];
+        if (this.pings[i] == null) return false;
         if (protocol == Protocol.Ping) {
             if (this.pings[i] is Ping req) {
                 return req.isDone == true && req.time > this.dataConfig.warningPing;
             }
         } else if (protocol == Protocol.Tcp) {
             if (this.pings[i] is System.Net.Sockets.TcpClient req) {
-                return req.Connected == true;
+                return req.Client != null && req.Connected == true;
             }
         } else if (protocol >= Protocol.GET) {
             if (this.pings[i] is UnityEngine.Networking.UnityWebRequest req) {
@@ -336,8 +413,10 @@ public class Status : VisualElement {
 
     private Chart.DataPoint GetChartValue(int i) {
         var protocol = this.config.protocols[i];
+        if (this.pings[i] == null) return default;
         if (protocol == Protocol.Ping) {
             if (this.pings[i] is Ping req) {
+                if (req.isDone == false) return default;
                 return new Chart.DataPoint() {
                     yAxis = req.time,
                 };
@@ -368,11 +447,13 @@ public class Status : VisualElement {
         return default;
     }
 
-    private string GetMs(int i) {
+    private string GetTextStatus(int i) {
         var protocol = this.config.protocols[i];
+        if ((Time.realtimeSinceStartup - this.timeouts[i]) >= this.dataConfig.GetTimeout(protocol)) return "Timeout";
+        if (this.pings[i] == null) return "Timeout";
         if (protocol == Protocol.Ping) {
             if (this.pings[i] is Ping req) {
-                if (req.time == -1) return "Request timeout";
+                if (req.isDone == false || req.time == -1) return "Request timeout";
                 return $"{req.time}ms";
             }
         } else if (protocol == Protocol.Tcp) {
@@ -409,7 +490,7 @@ public class Status : VisualElement {
         for (int i = 0; i < this.timer.Length; ++i) {
             this.timer[i] += dt;
             var rate = this.dataConfig.GetRate(this.config.protocols[i]);
-            if (this.timer[i] >= rate) {
+            if (this.timer[i] >= rate && this.IsDone(i, out var timeout) == true) {
                 this.timer[i] -= rate;
                 this.WriteToChart(i);
                 this.Dispose(i);
@@ -421,10 +502,8 @@ public class Status : VisualElement {
         var allSuccess = true;
         warnings = false;
         for (var i = 0; i < this.labels.Length; ++i) {
-            var ping = this.pings[i];
-            if (ping == null) continue;
             var label = this.labels[i];
-            if (this.IsDone(i) == true) {
+            if (this.IsDone(i, out var timeout) == true) {
                 label.RemoveFromClassList("checking");
                 if (this.IsSuccess(i) == true) {
                     label.RemoveFromClassList("failed");
@@ -437,7 +516,7 @@ public class Status : VisualElement {
                     allSuccess = false;
                     this.Fail(i);
                 }
-                this.msLabels[i].text = this.GetMs(i);
+                this.msLabels[i].text = this.GetTextStatus(i);
             } else {
                 label.AddToClassList("checking");
                 await = true;
@@ -446,6 +525,7 @@ public class Status : VisualElement {
 
         if (await == false) {
             if (warnings == true && allSuccess == true) {
+                this.state = State.Warning;
                 this.root.RemoveFromClassList("success");
                 this.root.RemoveFromClassList("failed");
                 this.root.AddToClassList("warning");
@@ -453,17 +533,18 @@ public class Status : VisualElement {
                 this.root.RemoveFromClassList("warning");
                 this.root.RemoveFromClassList("failed");
                 this.root.AddToClassList("success");
+                this.state = State.Success;
             } else {
                 this.root.RemoveFromClassList("success");
                 this.root.RemoveFromClassList("warning");
                 this.root.AddToClassList("failed");
+                this.state = State.Failed;
             }
         }
 
         return allSuccess;
     }
 
-    private int chartIndex = 0;
     private void WriteToChart(int i) {
         if (this.chart == null || this.chart.Length == 0 || this.chart[i] == null) return;
         if (this.chartIndex >= this.chart[i].DataPoints.Length) {
@@ -480,6 +561,7 @@ public class Status : VisualElement {
 public class MainScreen : MonoBehaviour {
     
     public UIDocument document;
+    public GeoMap geoMap;
     private StyleSheet styles;
     private System.Collections.Generic.List<Status> statusList = new System.Collections.Generic.List<Status>();
     private System.Collections.Generic.List<VisualElement> groups = new System.Collections.Generic.List<VisualElement>();
@@ -589,6 +671,10 @@ public class MainScreen : MonoBehaviour {
             
             var servers = new VisualElement();
             servers.AddToClassList("servers");
+            if (this.config.geoMode == true) {
+                servers.style.display = DisplayStyle.None;
+            }
+
             root.Add(servers);
             {
                 var globalStatus = new VisualElement();
@@ -610,6 +696,25 @@ public class MainScreen : MonoBehaviour {
             this.DrawGroups(list, this.config.groups, baseParams);
         }
 
+        if (this.config.geoMode == true) {
+            var geoRoot = new VisualElement();
+            geoRoot.AddToClassList("geo-root");
+            root.Add(geoRoot);
+            this.geoMap.Draw(geoRoot, this);
+            this.geoMap.gameObject.SetActive(true);
+        } else {
+            this.geoMap.gameObject.SetActive(false);
+        }
+
+    }
+
+    public VisualElement GetItem(GeoMap.ServerInfo info) {
+        foreach (var status in this.statusList) {
+            if (status.tag == info) {
+                return status.root;
+            }
+        }
+        return null;
     }
 
     private void DrawFileChooser(VisualElement root) {
@@ -664,7 +769,7 @@ public class MainScreen : MonoBehaviour {
                     var description = new Label(serverConfig.description);
                     caption.AddToClassList("description");
                     container.Add(description);
-                    var status = new Status(serverConfig, parentGroup, item, inhConfig);
+                    var status = new Status(this, serverConfig, parentGroup, item, inhConfig);
                     this.statusList.Add(status);
                     status.Start();
                     container.Add(status);
