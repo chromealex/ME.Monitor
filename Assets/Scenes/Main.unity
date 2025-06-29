@@ -5519,6 +5519,7 @@ MonoBehaviour:
   serverRadius: 500
   baseRadiusCity: 120
   radiusStepCity: 20
+  tracePrefab: {fileID: 4913572406200665244, guid: 209893adcf37749099885e1de5e64828, type: 3}
 --- !u!1 &2147401659
 GameObject:
   m_ObjectHideFlags: 0

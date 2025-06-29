@@ -61,6 +61,87 @@
           "protocols": [
             0, 2
           ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "unity.com",
+          "port": 0,
+          "description": "Unity",
+          "protocols": [
+            0
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "slack.com",
+          "port": 0,
+          "description": "Slack",
+          "protocols": [
+            2
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "playstation.com",
+          "port": 0,
+          "description": "Sony PlatStation",
+          "protocols": [
+            2
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "chatgpt.com",
+          "port": 0,
+          "description": "ChatGpt",
+          "protocols": [
+            0
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "www.amazon.com",
+          "port": 0,
+          "description": "Amazon",
+          "protocols": [
+            0, 2
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "microsoft.com",
+          "port": 0,
+          "description": "Microsoft",
+          "protocols": [
+            2
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "digitalocean.com",
+          "port": 0,
+          "description": "DigitalOcean",
+          "protocols": [
+            0, 2
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "www.tencentgames.com",
+          "port": 0,
+          "description": "Tencent Games",
+          "protocols": [
+            0, 2
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "www.alibaba.com",
+          "port": 0,
+          "description": "Alibaba",
+          "protocols": [
+            0, 2
+          ]
         }
       ],
       "groups": [

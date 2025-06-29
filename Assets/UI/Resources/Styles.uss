@@ -1,6 +1,8 @@
 * {
+    -unity-font: resource('Fonts/Font');
+    -unity-font-definition: resource('Fonts/Font SDF');
     color: white;
-    transition-property: background-color;
+    transition-property: background-color, border-color;
     transition-duration: 0.5;
 }
 
@@ -132,12 +134,17 @@ Foldout Toggle {
     text-overflow: ellipsis;
 }
 
-.servers .item .caption {
+.servers .item .caption-container {
     border-radius: 3px;
-    white-space: normal;
     margin: 0px;
-    background-color: rgba(255, 255, 255, 0.1);
+    flex-direction: row;
+    height: 20px;
     padding-left: 5px;
+}
+
+.servers .item .caption-container .caption {
+    white-space: normal;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .servers .item .container {
@@ -232,11 +239,20 @@ Status .ms {
     padding-top: 0px;
 }
 
-.geo-group.servers .item .caption {
+.geo-group.servers .item .caption-container {
     background-color: rgba(0, 0, 0, 0);
     position: absolute;
+    padding-left: 0px;
     top: -24px;
-    left: 30px;
+    left: 20px;
+}
+
+.geo-group.servers .item .caption-container .caption {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.geo-group.servers .item .caption-container .icon {
+    margin-top: 6px;
 }
 
 .geo-group.servers .item .description {
@@ -254,7 +270,7 @@ Status .ms {
     margin-right: 20px;
 }
 .geo-group.servers .item {
-    min-width: 300px;
+    min-width: 200px;
 }
 
 City {
@@ -274,4 +290,116 @@ City {
     border-width: 2px;
     border-color: white;
     border-radius:  6px;
+}
+
+.geo-group .icon {
+    width: 16px;
+    height: 16px;
+}
+
+.geo-root .global-status {
+    position: absolute;
+    align-items: center;
+    min-width: 200px;
+    flex-grow: 0;
+    height: auto;
+    padding: 10px 30px;
+    margin-left: 10px;
+    margin-top: 10px;
+    border-width: 4px;
+    border-color: white;
+}
+
+.geo-root .global-status Label {
+    font-size: 24px;
+}
+
+.geo-root .global-status.success {
+    background-color: rgba(0, 255, 0, 0.01);
+    border-color: rgba(0, 255, 0, 0.5);
+}
+.geo-root .global-status.failed {
+    background-color: rgba(255, 0, 0, 0.01);
+    border-color: rgba(255, 0, 0, 0.1);
+}
+.geo-root .global-status.warning {
+    background-color: rgba(255, 255, 0, 0.01);
+    border-color: rgba(255, 255, 0, 0.1);
+}
+
+.message {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    align-items: center;
+    justify-content: center;
+}
+
+.message .message-text {
+    padding: 50px;
+    font-size: 30px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}
+
+.message .container {
+    width: 700px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-width: 10px;
+    border-color: white;
+}
+
+.message .container .header {
+    margin: 0px;
+    font-size: 30px;
+}
+
+.message.failed .container {
+    border-color: rgba(255, 0, 0, 1);
+}
+
+.message.success .container {
+    border-color: rgba(0, 255, 0, 1);
+}
+
+.message .container .header {
+    color: rgba(0, 0, 0, 0.7);
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    font-size: 40px;
+}
+
+.message.failed .container .header {
+    background-color: rgba(255, 0, 0, 1);
+}
+
+.message.success .container .header {
+    background-color: rgba(0, 255, 0, 1);
+}
+
+.message.failed .container.blink-on .header {
+    background-color: rgba(255, 0, 0, 1);
+}
+.message.success .container.blink-on .header {
+    background-color: rgba(0, 255, 0, 1);
+}
+.message.failed .container.blink-off .header {
+    background-color: rgba(255, 0, 0, 0.1);
+}
+.message.success .container.blink-off .header {
+    background-color: rgba(0, 255, 0, 0.1);
+}
+.message.failed .container.blink-on {
+    border-color: rgba(255, 0, 0, 1);
+}
+.message.success .container.blink-on {
+    border-color: rgba(0, 255, 0, 1);
+}
+.message.failed .container.blink-off {
+    border-color: rgba(255, 0, 0, 0.1);
+}
+.message.success .container.blink-off {
+    border-color: rgba(0, 255, 0, 0.1);
 }
