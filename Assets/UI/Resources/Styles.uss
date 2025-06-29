@@ -18,15 +18,6 @@
     flex-grow: 0;
 }
 
-.geo-group {
-    position: absolute;
-    flex-grow: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 6px;
-    border-width: 8px;
-    border-color: rgba(0, 0, 0, 1);
-}
-
 Chart {
     width: 50px;
     height: 24px;
@@ -224,4 +215,63 @@ Status .ms {
 
 .servers .item .warning {
     color: yellow;
+}
+
+.geo-group {
+    position: absolute;
+    flex-grow: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 60px;
+    border-width: 8px;
+    border-color: rgba(0, 0, 0, 1);
+}
+
+.geo-group .item {
+    border-radius: 50px;
+    border-top-width: 24px;
+    padding-top: 0px;
+}
+
+.geo-group.servers .item .caption {
+    background-color: rgba(0, 0, 0, 0);
+    position: absolute;
+    top: -24px;
+    left: 30px;
+}
+
+.geo-group.servers .item .description {
+    font-size: 12px;
+    padding-left: 30px;
+}
+
+.geo-group.servers .item .container {
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+
+.geo-group.servers .item .container Status {
+    margin-left: 30px;
+    margin-right: 20px;
+}
+.geo-group.servers .item {
+    min-width: 300px;
+}
+
+City {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    bottom: 0px;
+    right: 0px;
+}
+
+.city-container {
+    position: absolute;
+    margin-bottom: 200px;
+    background-color: rgba(0, 0, 0, 0.5);
+    min-width: 120px;
+    color: white;
+    border-width: 2px;
+    border-color: white;
+    border-radius:  6px;
 }

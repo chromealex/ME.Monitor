@@ -5515,8 +5515,10 @@ MonoBehaviour:
   cityPrefab: {fileID: 8800527583698019971, guid: 849eea3b1407548629c5d999925c3909, type: 3}
   locationPrefab: {fileID: 8442888117630753489, guid: 76ce01e217ad34b92b9155d602d9217d, type: 3}
   baseRadius: 800
-  serverRadius: 500
   radiusStep: 20
+  serverRadius: 500
+  baseRadiusCity: 120
+  radiusStepCity: 20
 --- !u!1 &2147401659
 GameObject:
   m_ObjectHideFlags: 0

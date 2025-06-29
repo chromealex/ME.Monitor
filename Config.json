@@ -15,7 +15,7 @@
   "geoMode": true,
   "groups": [
     {
-      "caption": "Google",
+      "caption": "General Services",
       "servers": [
         {
           "protocolPrefix": "https",
@@ -49,6 +49,15 @@
           "host": "jetbrains.com",
           "port": 0,
           "description": "jetbrains.com",
+          "protocols": [
+            0, 2
+          ]
+        },
+        {
+          "protocolPrefix": "https",
+          "host": "store.steampowered.com",
+          "port": 0,
+          "description": "Steam store",
           "protocols": [
             0, 2
           ]

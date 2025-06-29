@@ -767,7 +767,7 @@ public class MainScreen : MonoBehaviour {
                 item.Add(container);
                 {
                     var description = new Label(serverConfig.description);
-                    caption.AddToClassList("description");
+                    description.AddToClassList("description");
                     container.Add(description);
                     var status = new Status(this, serverConfig, parentGroup, item, inhConfig);
                     this.statusList.Add(status);

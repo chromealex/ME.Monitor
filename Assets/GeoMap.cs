@@ -145,23 +145,28 @@ public class Group : VisualElement {
     public GeoMap.ServerInfo serverInfo;
     private Camera cameraObj;
     private readonly Line line;
+    public readonly City city;
 
     public Group(GeoMap.ServerInfo serverInfo, Camera cameraObj) {
         this.serverInfo = serverInfo;
         this.cameraObj = cameraObj;
         this.line = new Line(this);
+        this.city = new City(this, serverInfo, cameraObj);
     }
 
     public void Initialize() {
         this.line.Initialize();
+        this.city.Initialize();
     }
 
     public void MarkDirty() {
         this.line.MarkDirtyRepaint();
+        this.city.MarkDirtyRepaint();
     }
 
     public void UpdateLine() {
         this.line.UpdateParent();
+        this.city.UpdateParent();
     }
 
     public Vector2 GetNearestCorner(Vector2 targetPoint) {
@@ -195,6 +200,68 @@ public class Group : VisualElement {
 
     public Vector2 GetTargetPosition() {
         return RuntimePanelUtils.CameraTransformWorldToPanel(this.panel, this.serverInfo.position, this.cameraObj);
+    }
+
+}
+
+public class City : VisualElement {
+
+    private Camera cameraObj;
+    private GeoMap.ServerInfo serverInfo;
+    private VisualElement group;
+    public float height = 50f;
+    private VisualElement container;
+
+    public City(VisualElement group, GeoMap.ServerInfo serverInfo, Camera cameraObj) {
+        this.group = group;
+        this.serverInfo = serverInfo;
+        this.cameraObj = cameraObj;
+    }
+
+    public Rect GetRect() {
+        return new Rect(this.GetPosition(), new Vector2(this.container.resolvedStyle.width, this.container.resolvedStyle.height));
+    }
+
+    public void SetRect(Rect bestRect) {
+        this.container.style.left = bestRect.x;
+        this.container.style.top = bestRect.y;
+    }
+
+    public Vector2 GetPosition() => RuntimePanelUtils.CameraTransformWorldToPanel(this.panel, this.serverInfo.position, this.cameraObj);
+
+    public void Initialize() {
+        var container = new VisualElement();
+        this.Add(container);
+        this.container = container;
+        container.AddToClassList("city-container");
+        var regionName = new Label(this.serverInfo.geo.regionName);
+        regionName.AddToClassList("region-name");
+        container.Add(regionName);
+        var city = new Label(this.serverInfo.geo.city);
+        city.AddToClassList("city");
+        container.Add(city);
+        this.generateVisualContent += this.GenerateVisual;
+    }
+
+    public void UpdateParent() {
+        this.group.parent.Add(this);
+        this.SendToBack();
+        this.MarkDirtyRepaint();
+    }
+
+    private void GenerateVisual(MeshGenerationContext context) {
+        var pos = this.GetPosition();
+        var targetPos = new Rect(this.container.resolvedStyle.left, this.container.resolvedStyle.top, this.container.resolvedStyle.width, this.container.resolvedStyle.height);
+        var bounds = new Bounds(targetPos.center, targetPos.size);
+        this.height = this.container.resolvedStyle.marginBottom;
+        var painter = context.painter2D;
+        painter.lineWidth = 1f;
+        painter.strokeColor = this.container.resolvedStyle.color;
+        painter.BeginPath();
+        painter.MoveTo(pos);
+        painter.LineTo(bounds.ClosestPoint(pos));
+        painter.Stroke();
+
     }
 
 }
@@ -235,6 +302,8 @@ public class GeoMap : MonoBehaviour {
         public string status; // "success"
         public double lat;
         public double lon;
+        public string regionName;
+        public string city;
 
     }
 
@@ -411,14 +480,67 @@ public class GeoMap : MonoBehaviour {
     }
 
     public float baseRadius = 50f;
-    public float serverRadius = 50f;
     public float radiusStep = 20f;
+    public float serverRadius = 50f;
+    public float baseRadiusCity = 0f;
+    public float radiusStepCity = 20f;
     private readonly System.Collections.Generic.List<(Rect rect, VisualElement element)> placedRects = new();
     private readonly System.Collections.Generic.Dictionary<Vector3, System.Collections.Generic.List<((VisualElement element, Group group) visual, ServerInfo serverInfo)>>
         groups = new();
     private VisualElement root;
 
     private void UpdateUI() {
+
+        this.placedRects.Clear();
+
+        foreach (var item in this.groups) {
+            var element = item.Value[0].visual.group.city;
+            var panelSize = element.parent.localBound;
+            var rect = element.GetRect();
+
+            var elementSize = rect.size;
+            var baseRadius = this.baseRadiusCity;
+            var radiusStep = this.radiusStepCity; // шаг радиуса
+            var angleSteps = 12; // количество точек на круге (360 / angleSteps)
+            var maxRings = 5; // сколько колец искать максимум
+
+            var foundPlacement = false;
+            var bestRect = new Rect(rect.x, rect.y, elementSize.x, elementSize.y);
+
+            for (var ring = 0; ring < maxRings && !foundPlacement; ring++) {
+                var radius = baseRadius + ring * radiusStep;
+                for (var step = 0; step < angleSteps; step++) {
+                    var angle = 360f / angleSteps * step;
+                    var rad = angle * Mathf.Deg2Rad;
+                    var dx = Mathf.Cos(rad) * radius;
+                    var dy = Mathf.Sin(rad) * radius;
+
+                    var tryRect = new Rect(
+                        rect.x + dx - elementSize.x / 2f,
+                        rect.y + dy - elementSize.y / 2f,
+                        elementSize.x,
+                        elementSize.y
+                    );
+
+                    if (!this.IsOverlapping(tryRect, this.placedRects) && this.IsInside(tryRect, panelSize)) {
+                        bestRect = tryRect;
+                        foundPlacement = true;
+                        break;
+                    }
+                }
+            }
+            
+            var clampedX = Mathf.Clamp(bestRect.x, 0, panelSize.width - bestRect.size.x);
+            var clampedY = Mathf.Clamp(bestRect.y, 0, panelSize.height - bestRect.size.y);
+
+            //element.style.left = Mathf.Lerp(element.style.left.value.value, clampedX, Time.deltaTime * this.uiFollowSpeed);
+            //element.style.top = Mathf.Lerp(element.style.top.value.value, clampedY, Time.deltaTime * this.uiFollowSpeed);
+            element.SetRect(new Rect(clampedX, clampedY, elementSize.x, elementSize.y));
+            element.MarkDirtyRepaint();
+            
+            var clampedRect = new Rect(clampedX, clampedY, bestRect.width, bestRect.height);
+            this.placedRects.Add((clampedRect, element));
+        }
 
         this.placedRects.Clear();
         foreach (var item in this.servers) {
