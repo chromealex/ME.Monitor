@@ -339,7 +339,8 @@ namespace ME.Monitoring {
         private int chartIndex = 0;
         public readonly GeoMap.ServerInfo tag;
         public Tracert tracert;
-        
+        private readonly System.Net.IPHostEntry host;
+
         public Status(MainScreen mainScreen, ServerConfig config, VisualElement parentGroup, VisualElement root, BaseGroupConfig dataConfig) {
             this.tracert = new Tracert(this);
             this.mainScreen = mainScreen;
@@ -370,8 +371,8 @@ namespace ME.Monitoring {
             }
 
             try {
-                var host = System.Net.Dns.GetHostEntry(this.config.host);
-                this.tag = this.mainScreen.geoMap.AddServer(host, this);
+                this.host = System.Net.Dns.GetHostEntry(this.config.host);
+                this.tag = this.mainScreen.geoMap.AddServer(this);
             } catch (System.Exception ex) {
                 Debug.LogException(ex);
             }
@@ -699,6 +700,10 @@ namespace ME.Monitoring {
 
             this.chart[i].DataPoints[this.chartIndex++] = this.GetChartValue(i);
             this.chart[i].MarkDirtyRepaint();
+        }
+
+        public string GetIP() {
+            return this.host.AddressList[0].ToString();
         }
 
     }

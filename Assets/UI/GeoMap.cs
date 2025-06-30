@@ -494,12 +494,12 @@ namespace ME.Monitoring {
         public Transform locationPrefab;
         private Transform currentLocation;
         private LocationGeoData location;
-        private readonly System.Collections.Generic.Dictionary<string, ServerInfo> servers = new();
-        private readonly System.Collections.Generic.List<Task<LocationGeoData>> serversAwaitList = new();
+        private readonly System.Collections.Generic.Dictionary<Status, ServerInfo> servers = new();
+        private readonly System.Collections.Generic.List<(Status, Task<LocationGeoData>)> serversAwaitList = new();
 
         public async void Start() {
             if (this.cities == null) {
-                this.cities = LoadCities("Assets/WorldMap/coords.csv");
+                this.cities = LoadCities("coords");
             }
 
             foreach (var city in this.cities) {
@@ -512,7 +512,8 @@ namespace ME.Monitoring {
 
         public static System.Collections.Generic.List<City> LoadCities(string csvPath) {
             var list = new System.Collections.Generic.List<City>();
-            foreach (var line in System.IO.File.ReadLines(csvPath).Skip(1)) {
+            var text = Resources.Load<TextAsset>(csvPath).text.Split('\n').Skip(1).ToArray();
+            foreach (var line in text) {
                 var parts = line.Split(',');
                 try {
                     list.Add(new City {
@@ -551,7 +552,20 @@ namespace ME.Monitoring {
 
         private static readonly System.Collections.Generic.Dictionary<string, LocationGeoData> cacheLocations = new System.Collections.Generic.Dictionary<string, LocationGeoData>();
         public async Task<LocationGeoData> GetLocation(string ipAddress) {
-            if (cacheLocations.TryGetValue(ipAddress, out var locationData) == true) return locationData;
+            while (true) {
+                if (cacheLocations.TryGetValue(ipAddress, out var locationData) == true) {
+                    if (locationData.status == "await") {
+                        await Task.Yield();
+                    } else if (locationData.status == "success") {
+                        return locationData;
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            cacheLocations.TryAdd(ipAddress, new LocationGeoData() { status = "await" });
             var req = UnityEngine.Networking.UnityWebRequest.Get($"http://ip-api.com/json{(string.IsNullOrEmpty(ipAddress) == false ? $"/{ipAddress}" : string.Empty)}");
             var op = req.SendWebRequest();
             while (op.isDone == false) {
@@ -563,7 +577,7 @@ namespace ME.Monitoring {
                     try {
                         var data = JsonUtility.FromJson<LocationGeoData>(req.downloadHandler.text);
                         data.name = ipAddress;
-                        cacheLocations.Add(ipAddress, data);
+                        cacheLocations[ipAddress] = data;
                         return data;
                     } catch (System.Exception ex) {
                         Debug.LogError($"Could not get geo data: {ex}");
@@ -574,21 +588,20 @@ namespace ME.Monitoring {
             return new LocationGeoData() { name = ipAddress };
         }
 
-        public ServerInfo AddServer(System.Net.IPHostEntry host, Status status) {
-            var ip = host.AddressList[0].ToString();
-            if (this.servers.TryGetValue(ip, out var geo) == false) {
+        public ServerInfo AddServer(Status status) {
+            if (this.servers.TryGetValue(status, out var geo) == false) {
                 geo = new ServerInfo() {
                     status = status,
                 };
-                this.servers.Add(ip, geo);
-                this.serversAwaitList.Add(this.GetLocation(ip));
+                this.servers.Add(status, geo);
+                this.serversAwaitList.Add((status, this.GetLocation(status.GetIP())));
             }
 
             return geo;
         }
 
         private void AddServerToGroup(ServerInfo info) {
-            var element = this.serversElements.First(x => ((System.Collections.Generic.KeyValuePair<string, ServerInfo>)x.userData).Value == info);
+            var element = this.serversElements.First(x => ((System.Collections.Generic.KeyValuePair<Status, ServerInfo>)x.userData).Value == info);
             if (this.groups.TryGetValue(info.position, out var list) == false) {
                 var group = new Group(info, this.cameraObj);
                 group.AddToClassList("geo-group");
@@ -637,7 +650,7 @@ namespace ME.Monitoring {
                 this.serversElements.Add(element);
                 element.AddToClassList("server-geo-info");
                 root.Add(element);
-                var label = new Label(item.Key);
+                var label = new Label(item.Key.GetIP());
                 element.Add(label);
             }
 
@@ -659,19 +672,22 @@ namespace ME.Monitoring {
                     if (request.isDone == true && request.result == UnityEngine.Networking.UnityWebRequest.Result.Success) {
                         try {
                             var icoBytes = request.downloadHandler.data;
-                            var tex = IcoConverter.Convert(icoBytes);
-                            if (tex != null) {
-                                this.image.image = tex;
-                                this.image.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.Flex);
-                                this.isSuccess = true;
-                                Debug.Log("Success: " + this.image.image);
+                            if (icoBytes == null) {
+                                ++failedCount;
                             } else {
-                                throw new Exception("LoadImage failed for request: " + request.url);
+                                var tex = IcoConverter.Convert(icoBytes);
+                                if (tex != null) {
+                                    this.image.image = tex;
+                                    this.image.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.Flex);
+                                    this.isSuccess = true;
+                                    Debug.Log("Success: " + this.image.image);
+                                } else {
+                                    throw new Exception("LoadImage failed for request: " + request.url);
+                                }
                             }
                         } catch (Exception ex) {
                             Debug.LogError(ex);
                             ++failedCount;
-                            this.image.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
                         }
                     } else if (request.isDone == true) {
                         ++failedCount;
@@ -847,6 +863,8 @@ namespace ME.Monitoring {
 
         public void Update() {
 
+            if (this.currentLocation == null) return;
+            
             this.UpdateUI();
 
             var bounds = new Bounds() {
@@ -945,9 +963,9 @@ namespace ME.Monitoring {
 
             for (var index = this.serversAwaitList.Count - 1; index >= 0; --index) {
                 var task = this.serversAwaitList[index];
-                if (task.IsCompleted == true) {
-                    var item = this.servers[task.Result.name];
-                    item.geo = task.Result;
+                if (task.Item2.IsCompleted == true) {
+                    var item = this.servers[task.Item1];
+                    item.geo = task.Item2.Result;
                     item.position = this.GetPosition(item.geo.lat, item.geo.lon);
                     this.AddServerToGroup(item);
                     item.particlesIndex = this.emittedParticles;
