@@ -539,12 +539,12 @@ namespace ME.Monitoring {
 
         public async Task GetMyLocation() {
             #if UNITY_ANDROID && !UNITY_EDITOR
-        if (UnityEngine.Android.Permission.HasUserAuthorizedPermission(UnityEngine.Android.Permission.FineLocation) == false) {
-            UnityEngine.Android.Permission.RequestUserPermission(UnityEngine.Android.Permission.FineLocation);
-        }
-        if (Input.location.status == LocationServiceStatus.Stopped) Input.location.Start();
+            if (UnityEngine.Android.Permission.HasUserAuthorizedPermission(UnityEngine.Android.Permission.FineLocation) == false) {
+                UnityEngine.Android.Permission.RequestUserPermission(UnityEngine.Android.Permission.FineLocation);
+            }
+            if (Input.location.status == LocationServiceStatus.Stopped) Input.location.Start();
             #elif UNITY_IOS && !UNITY_EDITOR
-        if (Input.location.status == LocationServiceStatus.Stopped) Input.location.Start();
+            if (Input.location.status == LocationServiceStatus.Stopped) Input.location.Start();
             #else
             this.location = await this.GetLocation(string.Empty);
             #endif
@@ -680,9 +680,8 @@ namespace ME.Monitoring {
                                     this.image.image = tex;
                                     this.image.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.Flex);
                                     this.isSuccess = true;
-                                    Debug.Log("Success: " + this.image.image);
                                 } else {
-                                    throw new Exception("LoadImage failed for request: " + request.url);
+                                    throw new Exception($"LoadImage failed for request: {request.url}");
                                 }
                             }
                         } catch (Exception ex) {
@@ -1038,7 +1037,7 @@ namespace ME.Monitoring {
                 var d2 = (prev - right).sqrMagnitude;
                 if (d0 < d1 && d0 < d2) {
                     // d0
-                    p = p;
+                    //p = p;
                 } else if (d1 < d2) {
                     // d1
                     p = left;

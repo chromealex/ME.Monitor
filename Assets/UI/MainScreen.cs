@@ -374,7 +374,7 @@ namespace ME.Monitoring {
 
             if (this.mainScreen.config.geoMode == true) {
                 try {
-                    this.host = this.GetHostEntry(this.config.host);
+                    this.host = GetHostEntry(this.config.host);
                     this.tag = this.mainScreen.geoMap.AddServer(this);
                 } catch (System.Exception ex) {
                     Debug.LogException(ex);
@@ -426,9 +426,10 @@ namespace ME.Monitoring {
         
         private static byte[] buffer = new byte[8] { 1, 2, 3, 4, 5, 6, 7, 8 };
         private System.Net.NetworkInformation.Ping ping;
+        private System.IAsyncResult tcpConnect;
 
         private static readonly System.Collections.Generic.Dictionary<string, System.Net.IPHostEntry> hostToEntries = new System.Collections.Generic.Dictionary<string, System.Net.IPHostEntry>();
-        private System.Net.IPHostEntry GetHostEntry(string host) {
+        private static System.Net.IPHostEntry GetHostEntry(string host) {
             if (hostToEntries.TryGetValue(host, out var entry) == true) return entry;
             entry = System.Net.Dns.GetHostEntry(host);
             if (entry.AddressList.Length > 0) {
@@ -442,8 +443,8 @@ namespace ME.Monitoring {
             this.timeouts[i] = Time.realtimeSinceStartup;
             if (protocol == Protocol.Ping) {
                 try {
-                    var host = this.GetHostEntry(this.config.host);
-                    this.pings[i] = new UnityEngine.Ping(host.AddressList[0].ToString());
+                    var host = GetHostEntry(this.config.host);
+                    this.pings[i] = new Ping(host.AddressList[0].ToString());
                 } catch (System.Exception ex) {
                     this.pings[i] = null;
                     Debug.LogException(ex);
@@ -451,11 +452,11 @@ namespace ME.Monitoring {
                 }
             } else if (protocol == Protocol.Tcp) {
                 try {
-                    var host = this.GetHostEntry(this.config.host);
+                    var host = GetHostEntry(this.config.host);
                     var tcpClient = new System.Net.Sockets.TcpClient(host.AddressList[0].AddressFamily);
-                    tcpClient.SendTimeout = (int)(this.dataConfig.GetRate(Protocol.Tcp) * 1000);
-                    tcpClient.ReceiveTimeout = (int)(this.dataConfig.GetRate(Protocol.Tcp) * 1000);
-                    tcpClient.BeginConnect(host.AddressList, this.config.port, null, null);
+                    tcpClient.SendTimeout = (int)(this.dataConfig.GetTimeout(Protocol.Tcp) * 1000);
+                    tcpClient.ReceiveTimeout = (int)(this.dataConfig.GetTimeout(Protocol.Tcp) * 1000);
+                    this.tcpConnect = tcpClient.BeginConnect(host.AddressList, this.config.port, null, null);
                     this.pings[i] = tcpClient;
                 } catch (System.Exception ex) {
                     this.pings[i] = null;
@@ -488,6 +489,7 @@ namespace ME.Monitoring {
                 (this.pings[i] as Ping)?.DestroyPing();
             } else if (protocol == Protocol.Tcp) {
                 if (this.pings[i] is System.Net.Sockets.TcpClient req) {
+                    if (this.tcpConnect?.IsCompleted == false) req.EndConnect(this.tcpConnect);
                     req.Close();
                     req.Dispose();
                 }
