@@ -243,6 +243,7 @@ Status .ms {
     background-color: rgba(0, 0, 0, 0);
     padding-left: 0px;
     padding-right: 40px;
+    height: 0px;
     top: -24px;
     left: 20px;
 }
