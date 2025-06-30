@@ -241,8 +241,8 @@ Status .ms {
 
 .geo-group.servers .item .caption-container {
     background-color: rgba(0, 0, 0, 0);
-    position: absolute;
     padding-left: 0px;
+    padding-right: 40px;
     top: -24px;
     left: 20px;
 }

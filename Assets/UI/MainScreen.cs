@@ -121,10 +121,11 @@ namespace ME.Monitoring {
         public string protocolPrefix;
         public string host;
         public string method;
+        public bool trace;
         public int port;
         public string description;
         public Protocol[] protocols;
-
+        
     }
 
     [System.Serializable]
@@ -142,6 +143,7 @@ namespace ME.Monitoring {
         public Group[] groups;
         public ServerConfig[] servers;
         public float uiScale;
+        public bool trace;
         public bool geoMode;
 
         public bool IsValid => this.servers != null || this.groups != null;
@@ -370,11 +372,13 @@ namespace ME.Monitoring {
                 }
             }
 
-            try {
-                this.host = System.Net.Dns.GetHostEntry(this.config.host);
-                this.tag = this.mainScreen.geoMap.AddServer(this);
-            } catch (System.Exception ex) {
-                Debug.LogException(ex);
+            if (this.mainScreen.config.geoMode == true) {
+                try {
+                    this.host = System.Net.Dns.GetHostEntry(this.config.host);
+                    this.tag = this.mainScreen.geoMap.AddServer(this);
+                } catch (System.Exception ex) {
+                    Debug.LogException(ex);
+                }
             }
         }
 
@@ -415,7 +419,9 @@ namespace ME.Monitoring {
         }
 
         public void UpdateTrace() {
-            this.tracert.Update(this.config.host);
+            if (this.config.trace == true && this.mainScreen.config.geoMode == true) {
+                this.tracert.Update(this.config.host);
+            }
         }
         
         public void Start(int i) {
@@ -718,7 +724,7 @@ namespace ME.Monitoring {
 
         private Label globalStatusLabel;
         private VisualElement globalStatus;
-        private Config config;
+        public Config config;
 
         public void LoadStyle() {
             if (this.styles == null) this.styles = Resources.Load<StyleSheet>("Styles");
