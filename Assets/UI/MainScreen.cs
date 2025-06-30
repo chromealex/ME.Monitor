@@ -14,6 +14,7 @@ namespace ME.Monitoring {
         POST,
         PUT,
         DELETE,
+        HEAD,
 
     }
 
@@ -444,7 +445,7 @@ namespace ME.Monitoring {
             if (protocol == Protocol.Ping) {
                 try {
                     var host = GetHostEntry(this.config.host);
-                    this.pings[i] = new Ping(host.AddressList[0].ToString());
+                    this.pings[i] = new ME.Ping(host.AddressList[0].ToString(), this.config);
                 } catch (System.Exception ex) {
                     this.pings[i] = null;
                     Debug.LogException(ex);
@@ -486,7 +487,7 @@ namespace ME.Monitoring {
         public void Dispose(int i) {
             var protocol = this.config.protocols[i];
             if (protocol == Protocol.Ping) {
-                (this.pings[i] as Ping)?.DestroyPing();
+                (this.pings[i] as ME.Ping)?.DestroyPing();
             } else if (protocol == Protocol.Tcp) {
                 if (this.pings[i] is System.Net.Sockets.TcpClient req) {
                     if (this.tcpConnect?.IsCompleted == false) req.EndConnect(this.tcpConnect);
@@ -511,7 +512,7 @@ namespace ME.Monitoring {
 
             if (this.pings[i] == null) return true;
             if (protocol == Protocol.Ping) {
-                if (this.pings[i] is Ping req) {
+                if (this.pings[i] is ME.Ping req) {
                     return req.isDone == true;
                 }
             } else if (protocol == Protocol.Tcp) {
@@ -554,7 +555,7 @@ namespace ME.Monitoring {
             var protocol = this.config.protocols[i];
             if (this.pings[i] == null) return false;
             if (protocol == Protocol.Ping) {
-                if (this.pings[i] is Ping req) {
+                if (this.pings[i] is ME.Ping req) {
                     return req.isDone == true && req.time > this.dataConfig.warningPing;
                 }
             } else if (protocol == Protocol.Tcp) {
@@ -574,7 +575,7 @@ namespace ME.Monitoring {
             var protocol = this.config.protocols[i];
             if (this.pings[i] == null) return default;
             if (protocol == Protocol.Ping) {
-                if (this.pings[i] is Ping req) {
+                if (this.pings[i] is ME.Ping req) {
                     if (req.isDone == false) return default;
                     return new Chart.DataPoint() {
                         yAxis = req.time,
@@ -745,12 +746,14 @@ namespace ME.Monitoring {
             if (this.styles == null) this.styles = Resources.Load<StyleSheet>("Styles");
         }
 
-        public void Awake() {
+        public async void Awake() {
 
-            if (this.LoadConfigByPath($"{System.IO.Directory.GetCurrentDirectory()}/Config.json") == true) return;
-            if (this.LoadConfigByPath($"{Application.dataPath}/Config.json") == true) return;
-            if (this.LoadConfigByPath($"{Application.persistentDataPath}/Config.json") == true) return;
-            if (this.LoadConfigByPath($"{Application.streamingAssetsPath}/Config.json") == true) return;
+            this.config = null;
+
+            if (await this.LoadConfigByPath($"{System.IO.Directory.GetCurrentDirectory()}/Config.json") == true) return;
+            if (await this.LoadConfigByPath($"{Application.dataPath}/Config.json") == true) return;
+            if (await this.LoadConfigByPath($"{Application.persistentDataPath}/Config.json") == true) return;
+            if (await this.LoadConfigByPath($"{Application.streamingAssetsPath}/Config.json") == true) return;
 
             var json = PlayerPrefs.GetString("config", string.Empty);
             if (string.IsNullOrEmpty(json) == false) {
@@ -759,8 +762,18 @@ namespace ME.Monitoring {
 
         }
 
-        private bool LoadConfigByPath(string path) {
-
+        private async System.Threading.Tasks.Task<bool> LoadConfigByPath(string path) {
+            
+            #if UNITY_WEBGL && !UNITY_EDITOR
+            Debug.Log(path);
+            var req = UnityEngine.Networking.UnityWebRequest.Get(path);
+            await req.SendWebRequest();
+            if (req.result == UnityEngine.Networking.UnityWebRequest.Result.Success && req.downloadHandler != null) {
+                this.LoadConfigByText(req.downloadHandler.text);
+                return true;
+            }
+            return false;
+            #else
             if (System.IO.File.Exists(path) == false) {
                 Debug.LogError($"{path} file not found");
                 return false;
@@ -768,8 +781,8 @@ namespace ME.Monitoring {
 
             var json = System.IO.File.ReadAllText(path);
             this.LoadConfigByText(json);
-
             return true;
+            #endif
 
         }
 
@@ -787,10 +800,6 @@ namespace ME.Monitoring {
 
         }
 
-        public void OnEnable() {
-            this.Draw();
-        }
-
         public void Draw() {
 
             this.statusList.Clear();
@@ -805,6 +814,7 @@ namespace ME.Monitoring {
             {
 
                 if (this.config == null || this.config.IsValid == false) {
+                    Debug.Log("CONFIG NOT FOUND OR IS NOT VALID");
                     var file = new VisualElement();
                     file.AddToClassList("file");
                     root.Add(file);
@@ -840,6 +850,8 @@ namespace ME.Monitoring {
                     return;
                 }
 
+                Debug.Log("GEO MODE: " + this.config.geoMode);
+                
                 var servers = new VisualElement();
                 servers.AddToClassList("servers");
                 if (this.config.geoMode == true) {
@@ -889,8 +901,11 @@ namespace ME.Monitoring {
                     geoRoot.Add(this.failedMessage);
                 }
                 this.geoMap.gameObject.SetActive(true);
+                Debug.Log("Initialized with geo");
+
             } else {
                 this.geoMap.gameObject.SetActive(false);
+                Debug.Log("Initialized without geo");
             }
 
         }
@@ -1061,10 +1076,17 @@ namespace ME.Monitoring {
         private float allStatusTimer = 0f;
         private VisualElement successMessage;
         private VisualElement failedMessage;
+
+        private bool drawCall = false;
         
         public void Update() {
 
             if (this.config == null || this.config.IsValid == false) return;
+
+            if (this.drawCall == false) {
+                this.drawCall = true;
+                this.Draw();
+            }
 
             this.UpdateBlinks();
             
